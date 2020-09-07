@@ -86,10 +86,10 @@ periodoMuestreo = new FormControl([
 
               this.numero = this.numero + this.voltaje.value * this.periodoMuestreo.value + this.temperatura;
 
-            }else{
+            }/*else{
 
               this.numero = this.numero + this.voltaje.value * this.periodoMuestreo.value;
-            }
+            }*/
             this.barChartData[0].data.push(this.numero);
             this.resultado.setValue(this.numero);
             this.contador++;
@@ -106,7 +106,7 @@ periodoMuestreo = new FormControl([
         }
         this.estadoMaquina = true;
       } else if (this.estadoMaquina === true) {
-        //document.write(this.result);
+        document.write(this.result);
         this.menor.setValue(' ');
         this.mayor.setValue(' ');
         clearInterval(this.intevalo);

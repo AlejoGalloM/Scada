@@ -12,8 +12,8 @@
 
         </div>
 
-        <div class="referencia" style="float: left; height: 50%; display: inline-block;">
-            <h4>Ingrese los intervalos de temperatura</h4>
+        <div class="referencia" style=" float:left; height: 50%; display: inline-block;">
+            <h4>Ingrese los datos</h4>
 
             <input type="number" id="mayor" placeholder="Referencia" [formControl]="mayor" required name="mayor">
             <div class="alert alert-danger" style="width: 5%;" *ngIf="mayor.invalid && (mayor.dirty || mayor.touched)">
