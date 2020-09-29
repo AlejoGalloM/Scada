@@ -1,8 +1,11 @@
+import { ServiceFireService } from './service-fire.service';
 import { Component, OnInit } from '@angular/core';
 import { ChartOptions, ChartType, ChartDataSets } from 'chart.js';
 import { Label } from 'ng2-charts';
 import { FormControl, Validators } from '@angular/forms';
 import { generate } from 'rxjs';
+import Swal from 'sweetalert2';
+
 
 @Component({
   selector: 'app-resultado',
@@ -10,37 +13,42 @@ import { generate } from 'rxjs';
   styleUrls: ['./resultado.component.css']
 })
 export class ResultadoComponent implements OnInit {
-
-
   intevalo = null;
   numero = 0;
   contador = 0;
   estadoMaquina = false;
   private temperatura = 0;
-  private encendido = false;
-  archivo = 'valores.txt';
+  private encendiendo = true;
   result: any;
-
+  private datos: Array<any> = Array<any>();
+  private segundos = 0;
+  numMayor = 0.008594;
+  numMenor = 0.008548;
+  num = 1.1;
+  denMenor = -1.984;
+  denMayor = 0.9841;
+  private registroTemperatura: Array<any> = Array<any>();
+  private contadorTemperatura = 0;
+  mostrarGrafica = true;
 
   public barChartOptions: ChartOptions = {
     responsive: true,
   };
 
-  public barChartLabels: Label[] = ['10', '20', '30', '40', '50', '60', '70', '80', '90',
-      '100', '110', '120', '130', '140', '150', '160', '170', '180', '190', '200', '210',
-      '220', '230', '240', '250', '260', '270', '2800', '290', '300', '310', '320', '330', '340',
-      '350', '360', '370', '380', '390', '400', '410', '420', '430', '440', '450', '460', '470', '480',
-      '490', '500', '510', '520', '530', '540', '550', '560', '570', '580', '590', '600', '610', '620', '630',
-      '60', '650', '660', '670', '680', '690', '700'];
+  public barChartLabels: Label[] = [];
 
   public barChartType: ChartType = 'line';
   public barChartLegend = true;
 
+  public barCharDataReferencia: ChartDataSets[] = [
+    {data: [], label: 'Referencia'}
+  ];
   public barChartData: ChartDataSets[] = [
-    { data: [], label: 'Temperatura' }
+    { data: [], label: 'Grafica'}
   ];
   fs: any;
 
+  constructor(private fireStorm: ServiceFireService){}
 
   ngOnInit(): void {
   }
@@ -73,47 +81,148 @@ periodoMuestreo = new FormControl([
   // tslint:disable-next-line: typedef
   encender() {
     if (this.mayor.value <= 0 || this.mayor.value > 100) {
-      window.alert('Error. los intervalos deben de estar entre 1 y 100');
-    } else {
-      if (this.estadoMaquina === false) {
-        if (this.mayor.value === 100) {
-          window.alert('ERROR. El intervalo debe ser menor');
-        } else {
+      Swal.fire({
+        icon: 'error',
+        text: 'Error. los intervalos deben de estar entre 1 y 100',
+      });
+    } else if (this.mayor.value === 100) {
+        Swal.fire({
+          icon: 'error',
+          text: 'ERROR. El intervalo debe ser menor',
+        });
+      } else{
+        if (this.estadoMaquina === false) {
           this.intevalo = setInterval(() => {
             this.temperatura = this.numeroAletorio();
-            this.encendido = true ;
-            if (this.encendido === true){
+            this.numero = this.numero + this.voltaje.value * this.periodoMuestreo.value + this.temperatura;
+            const temporal = {
+              segundo: this.segundos,
+              temperatura: this.numero
+            };
 
-              this.numero = this.numero + this.voltaje.value * this.periodoMuestreo.value + this.temperatura;
-
-            }/*else{
-
-              this.numero = this.numero + this.voltaje.value * this.periodoMuestreo.value;
-            }*/
+            this.datos.push(temporal);
             this.barChartData[0].data.push(this.numero);
             this.resultado.setValue(this.numero);
             this.contador++;
 
-            this.result += ' ---> ' + ' ( ' + this.contador + ' )t ' + ' - ' + ' ( ' + this.numero + ' )°C ';
-            //this.fs.writeFile('archivo.txt', this.result);
-            if (this.contador === 70) {
+            this.segundos += this.periodoMuestreo.value;
+            this.barChartLabels.push(this.segundos + ' seg');
+
+            if (this.contador === 1000) {
               clearInterval(this.intevalo);
-              window.alert('Proceso finalizado');
+              Swal.fire({
+                icon: 'success',
+                title: 'Proceso finalizado'
+              });
               clearInterval(this.intevalo);
+              this.fireStorm.createData(this.datos);
               this.contador = 0;
             }
-          }, 1000);
-        }
-        this.estadoMaquina = true;
+          }, 100);
+          this.estadoMaquina = true;
       } else if (this.estadoMaquina === true) {
-        document.write(this.result);
-        this.menor.setValue(' ');
-        this.mayor.setValue(' ');
         clearInterval(this.intevalo);
-        this.barChartData[0].data = [];
         this.estadoMaquina = false;
       }
     }
+}
+
+// tslint:disable-next-line: typedef
+encenderV2() {
+  if (this.mayor.value <= 0 || this.mayor.value > 100) {
+    Swal.fire({
+      icon: 'error',
+      text: 'Error. los intervalos deben de estar entre 1 y 100',
+    });
+  } else if (this.mayor.value === 100) {
+      Swal.fire({
+        icon: 'error',
+        text: 'ERROR. El intervalo debe ser menor',
+      });
+    } else
+      if (this.estadoMaquina === false){
+        this.intevalo = setInterval(() => {
+          if (this.contadorTemperatura === 0){
+            this.registroTemperatura.push(0);
+            this.barChartData[0].data.push(this.numero);
+            this.contadorTemperatura++;
+          }
+          else if (this.contadorTemperatura === 1){
+            this.registroTemperatura.push(0);
+            this.barChartData[0].data.push(this.numero);
+            this.contadorTemperatura++;
+          }else{
+            this.numero = (this.voltaje.value * 0.0094534) + (this.voltaje.value * 0.0094028)
+            + (this.registroTemperatura[this.contadorTemperatura - 1] * 1.984)
+            + (this.registroTemperatura[this.contadorTemperatura - 2] * -0.9841);
+            this.registroTemperatura.push(this.numero);
+            const temporal = {
+              segundo: this.segundos,
+              temperatura: this.numero
+            };
+            this.datos.push(temporal);
+            this.barChartData[0].data.push(this.numero);
+            this.resultado.setValue(this.numero);
+            this.contador++;
+            this.contadorTemperatura++;
+            this.segundos += this.periodoMuestreo.value;
+            this.barChartLabels.push(this.segundos + ' seg');
+
+            if (this.contador === 30000) {
+              clearInterval(this.intevalo);
+              Swal.fire({
+                 icon: 'success',
+                title: 'Proceso finalizado'
+              });
+              clearInterval(this.intevalo);
+              this.fireStorm.createData(this.datos);
+              this.contador = 0;
+              }
+          }
+        }, 100);
+        this.estadoMaquina = true;
+      }else if (this.estadoMaquina === true) {
+        clearInterval(this.intevalo);
+        this.estadoMaquina = false;
+      }
+}
+  // tslint:disable-next-line: typedef
+  Apagar() {
+      this.estadoMaquina = false;
+
+      clearInterval(this.intevalo);
+      Swal.fire({
+        icon: 'success',
+        title: 'Apagado'
+      });
+      clearInterval(this.intevalo);
+      this.fireStorm.createData(this.datos);
+      this.contador = 0;
+      this.barChartData[0].data = [];
+      this.periodoMuestreo.setValue(' ');
+      this.voltaje.setValue(' ');
+      this.resultado.setValue(' ');
+      this.menor.setValue(' ');
+      this.mayor.setValue(' ');
+      this.estadoMaquina = false;
+      this.numero = 0;
+      this.barChartLabels = [];
+      this.segundos = 0;
+      this.registroTemperatura = [];
+
+  }
+
+  // tslint:disable-next-line: typedef
+  Reset(){
+      this.periodoMuestreo.setValue(' ');
+      this.voltaje.setValue(' ');
+      this.resultado.setValue(' ');
+      this.menor.setValue(' ');
+      this.mayor.setValue(' ');
+      clearInterval(this.intevalo);
+      this.barChartData[0].data = [];
+      this.estadoMaquina = false;
+      this.numero = 0;
   }
 
   // tslint:disable-next-line: typedef
@@ -122,6 +231,17 @@ periodoMuestreo = new FormControl([
   }
 
   private numeroAletorio(): number {
-    return Math.floor(Math.random() * (4 - 0.5)) + 2;
+    return Math.floor(Math.random() * (4 - 3.5)) + 1.2;
+  }
+
+  private numeroAleatorioNum(): number {
+    const aleatorioNum = Math.floor(Math.random() * (this.numMayor - this.numMenor));
+    return this.num * aleatorioNum;
+  }
+
+  private numeroAleatorioDen(): number{
+    const aleatorioDen = Math.floor(Math.random() * (this.numMayor - this.numMenor));
+    return  aleatorioDen * -1;
+
   }
 }
