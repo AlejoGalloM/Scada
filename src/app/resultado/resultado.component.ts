@@ -78,6 +78,7 @@ periodoMuestreo = new FormControl([
 
   ]);
 
+
   // tslint:disable-next-line: typedef
   encender() {
     if (this.mayor.value <= 0 || this.mayor.value > 100) {
@@ -168,7 +169,13 @@ encenderV2() {
             this.segundos += this.periodoMuestreo.value;
             this.barChartLabels.push(this.segundos + ' seg');
 
-            if (this.contador === 30000) {
+            if (this.numero > this.mayor.value) {
+              this.voltaje.setValue(0);
+            }else if (this.numero < this.mayor.value){
+                this.voltaje.setValue(1);
+            }
+
+            if (this.contador === 3000) {
               clearInterval(this.intevalo);
               Swal.fire({
                  icon: 'success',
