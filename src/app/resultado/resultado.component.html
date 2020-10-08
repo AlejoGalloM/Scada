@@ -38,7 +38,7 @@
             </div>
             <hr>
             <button id="boton"  value="Encender" class="btn btn-success" (click)="encender()" style="position: relative; margin-left: 5px;" [disabled]="mayor.invalid || voltaje.invalid ||periodoMuestreo.invalid">Encender/Pausar</button>
-            <button id="boton"  value="Encender" class="btn btn-success" (click)="encenderV2()" style="position: relative; margin-left: 5px;" [disabled]="mayor.invalid || voltaje.invalid ||periodoMuestreo.invalid">EncenderV2/Pausar</button>
+           <button id="boton"  value="Encender" class="btn btn-success" (click)="encenderV2()" style="position: relative; margin-left: 5px;" [disabled]="mayor.invalid || voltaje.invalid ||periodoMuestreo.invalid">EncenderV2/Pausar</button>
 
             <button  value="Encender" class="btn btn-warning" (click)="Apagar()" style="position: relative; margin-left: 5px;">Apagar</button>
             <hr>
@@ -53,16 +53,11 @@
             </div>
             <hr>
             <div style= "float: left;"><h5>Temperatura</h5></div>
-
-            <div id="grafica" style="display: none;" *ngIf = "mostrarGrafica" class="container">
+        </div>
+            <div id="grafica" style="display: none;" *ngIf = "mostrarGrafica" class="container" style="color: black;">
                 <div style="display: block">
-                    <canvas baseChart [datasets]="barChartData" [labels]="barChartLabels" [options]="barChartOptions" [legend]="barChartLegend" [chartType]="barChartType">
-                </canvas>
-                 <!-- <canvas baseChart [datasets]="barCharDataReferencia"  [labels]="barChartLabels" [options]="barChartOptions" [legend]="barChartLegend" [chartType]="barChartType" >
-                  </canvas>-->
+                    <canvas baseChart [datasets]="barChartData" [labels]="barChartLabels" [options]="barChartOptions" [legend]="barChartLegend" [chartType]="barChartType"></canvas>
                 </div>
             </div>
             <div style= "float: right;"><h5>Tiempo</h5></div>
-          </div>
-
     </div>

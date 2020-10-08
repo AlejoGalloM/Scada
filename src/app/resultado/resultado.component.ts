@@ -22,41 +22,28 @@ export class ResultadoComponent implements OnInit {
   result: any;
   private datos: Array<any> = Array<any>();
   private segundos = 0;
-  numMayor = 0.008594;
-  numMenor = 0.008548;
-  num = 1.1;
-  denMenor = -1.984;
-  denMayor = 0.9841;
   private registroTemperatura: Array<any> = Array<any>();
   private contadorTemperatura = 0;
   mostrarGrafica = true;
+  private constanteK = 0.1;
+  private errorT = 0;
 
   public barChartOptions: ChartOptions = {
     responsive: true,
   };
 
   public barChartLabels: Label[] = [];
-
   public barChartType: ChartType = 'line';
   public barChartLegend = true;
 
-  public barCharDataReferencia: ChartDataSets[] = [
-    {data: [], label: 'Referencia'}
-  ];
   public barChartData: ChartDataSets[] = [
     { data: [], label: 'Grafica'}
   ];
-  fs: any;
 
   constructor(private fireStorm: ServiceFireService){}
 
   ngOnInit(): void {
   }
-
-  // tslint:disable-next-line: member-ordering
-  menor = new FormControl([
-
-  ]);
 
    // tslint:disable-next-line: member-ordering
    mayor = new FormControl([
@@ -78,7 +65,6 @@ periodoMuestreo = new FormControl([
 
   ]);
 
-
   // tslint:disable-next-line: typedef
   encender() {
     if (this.mayor.value <= 0 || this.mayor.value > 100) {
@@ -96,6 +82,7 @@ periodoMuestreo = new FormControl([
           this.intevalo = setInterval(() => {
             this.temperatura = this.numeroAletorio();
             this.numero = this.numero + this.voltaje.value * this.periodoMuestreo.value + this.temperatura;
+            
             const temporal = {
               segundo: this.segundos,
               temperatura: this.numero
@@ -119,7 +106,7 @@ periodoMuestreo = new FormControl([
               this.fireStorm.createData(this.datos);
               this.contador = 0;
             }
-          }, 100);
+          }, this.periodoMuestreo.value * 1000);
           this.estadoMaquina = true;
       } else if (this.estadoMaquina === true) {
         clearInterval(this.intevalo);
@@ -157,6 +144,7 @@ encenderV2() {
             + (this.registroTemperatura[this.contadorTemperatura - 1] * 1.984)
             + (this.registroTemperatura[this.contadorTemperatura - 2] * -0.9841);
             this.registroTemperatura.push(this.numero);
+          
             const temporal = {
               segundo: this.segundos,
               temperatura: this.numero
@@ -169,10 +157,12 @@ encenderV2() {
             this.segundos += this.periodoMuestreo.value;
             this.barChartLabels.push(this.segundos + ' seg');
 
-            if (this.numero > this.mayor.value) {
+            this.errorT = this.mayor.value - this.numero;
+
+            if (this.errorT > 0) {
+              this.voltaje.setValue(this.errorT * this.constanteK);
+            } else {
               this.voltaje.setValue(0);
-            }else if (this.numero < this.mayor.value){
-                this.voltaje.setValue(1);
             }
 
             if (this.contador === 3000) {
@@ -186,7 +176,7 @@ encenderV2() {
               this.contador = 0;
               }
           }
-        }, 100);
+        }, 10);
         this.estadoMaquina = true;
       }else if (this.estadoMaquina === true) {
         clearInterval(this.intevalo);
@@ -209,7 +199,6 @@ encenderV2() {
       this.periodoMuestreo.setValue(' ');
       this.voltaje.setValue(' ');
       this.resultado.setValue(' ');
-      this.menor.setValue(' ');
       this.mayor.setValue(' ');
       this.estadoMaquina = false;
       this.numero = 0;
@@ -219,18 +208,6 @@ encenderV2() {
 
   }
 
-  // tslint:disable-next-line: typedef
-  Reset(){
-      this.periodoMuestreo.setValue(' ');
-      this.voltaje.setValue(' ');
-      this.resultado.setValue(' ');
-      this.menor.setValue(' ');
-      this.mayor.setValue(' ');
-      clearInterval(this.intevalo);
-      this.barChartData[0].data = [];
-      this.estadoMaquina = false;
-      this.numero = 0;
-  }
 
   // tslint:disable-next-line: typedef
   verGrafica() {
@@ -239,16 +216,5 @@ encenderV2() {
 
   private numeroAletorio(): number {
     return Math.floor(Math.random() * (4 - 3.5)) + 1.2;
-  }
-
-  private numeroAleatorioNum(): number {
-    const aleatorioNum = Math.floor(Math.random() * (this.numMayor - this.numMenor));
-    return this.num * aleatorioNum;
-  }
-
-  private numeroAleatorioDen(): number{
-    const aleatorioDen = Math.floor(Math.random() * (this.numMayor - this.numMenor));
-    return  aleatorioDen * -1;
-
   }
 }
