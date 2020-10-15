@@ -14,6 +14,7 @@ import Swal from 'sweetalert2';
 })
 export class ResultadoComponent implements OnInit {
   intevalo = null;
+  intervalo = null;
   numero = 0;
   contador = 0;
   estadoMaquina = false;
@@ -25,8 +26,10 @@ export class ResultadoComponent implements OnInit {
   private registroTemperatura: Array<any> = Array<any>();
   private contadorTemperatura = 0;
   mostrarGrafica = true;
-  private constanteK = 0.1;
+  private constanteK = 5;
   private errorT = 0;
+  pausado = false;
+  private contadorPer = 0;
 
   public barChartOptions: ChartOptions = {
     responsive: true,
@@ -37,7 +40,9 @@ export class ResultadoComponent implements OnInit {
   public barChartLegend = true;
 
   public barChartData: ChartDataSets[] = [
-    { data: [], label: 'Grafica'}
+    { data: [], label: 'Grafica',borderColor:['rgb(#ffffff)']},
+    { data: [], label: 'Regerencia',borderColor:['rgb(#000033)'], pointBorderColor : ['rgb(#000033)']}
+
   ];
 
   constructor(private fireStorm: ServiceFireService){}
@@ -46,24 +51,32 @@ export class ResultadoComponent implements OnInit {
   }
 
    // tslint:disable-next-line: member-ordering
-   mayor = new FormControl([
+  mayor = new FormControl([
 
   ]);
 
     // tslint:disable-next-line: member-ordering
-resultado = new FormControl([
+  resultado = new FormControl([
 
   ]);
 
     // tslint:disable-next-line: member-ordering
-voltaje = new FormControl({
+  voltaje = new FormControl({
 
   });
 
     // tslint:disable-next-line: member-ordering
-periodoMuestreo = new FormControl([
+  periodoMuestreo = new FormControl([
 
   ]);
+
+  tempAmbiente = new FormControl({
+
+  })
+
+  perturbacion = new FormControl({
+
+  })
 
   // tslint:disable-next-line: typedef
   encender() {
@@ -82,7 +95,7 @@ periodoMuestreo = new FormControl([
           this.intevalo = setInterval(() => {
             this.temperatura = this.numeroAletorio();
             this.numero = this.numero + this.voltaje.value * this.periodoMuestreo.value + this.temperatura;
-            
+
             const temporal = {
               segundo: this.segundos,
               temperatura: this.numero
@@ -117,40 +130,55 @@ periodoMuestreo = new FormControl([
 
 // tslint:disable-next-line: typedef
 encenderV2() {
-  if (this.mayor.value <= 0 || this.mayor.value > 100) {
+  if (this.mayor.value <= 0 /*|| this.mayor.value > 100*/) {
     Swal.fire({
       icon: 'error',
       text: 'Error. los intervalos deben de estar entre 1 y 100',
     });
-  } else if (this.mayor.value === 100) {
+  } /*else if (this.mayor.value === 100) {
       Swal.fire({
         icon: 'error',
         text: 'ERROR. El intervalo debe ser menor',
       });
-    } else
+    } */else
       if (this.estadoMaquina === false){
+        this.numero += this.tempAmbiente.value;
         this.intevalo = setInterval(() => {
           if (this.contadorTemperatura === 0){
             this.registroTemperatura.push(0);
-            this.barChartData[0].data.push(this.numero);
+            this.barChartData[1].data.push(this.mayor.value);
             this.contadorTemperatura++;
           }
           else if (this.contadorTemperatura === 1){
             this.registroTemperatura.push(0);
             this.barChartData[0].data.push(this.numero);
+            this.barChartData[1].data.push(this.mayor.value);
             this.contadorTemperatura++;
           }else{
-            this.numero = (this.voltaje.value * 0.0094534) + (this.voltaje.value * 0.0094028)
-            + (this.registroTemperatura[this.contadorTemperatura - 1] * 1.984)
-            + (this.registroTemperatura[this.contadorTemperatura - 2] * -0.9841);
-            this.registroTemperatura.push(this.numero);
-          
+              this.numero = (((this.voltaje.value + this.perturbacion.value) * 0.0094534) + ((this.voltaje.value + this.perturbacion.value) * 0.0094028)
+              + (this.registroTemperatura[this.contadorTemperatura - 1] * 1.984)
+              + (this.registroTemperatura[this.contadorTemperatura - 2] * -0.9841));
+              this.registroTemperatura.push(this.numero);
+
+              this.perturbacion.setValue(0);
+
+              this.intervalo = setInterval(() => {
+                this.perturbacion.setValue(this.perVoltaje());
+              }, 120000)
+
             const temporal = {
               segundo: this.segundos,
-              temperatura: this.numero
+              temperatura: this.numero,
+              referencia: this.mayor.value,
+              perturbacion: this.perturbacion.value,
+              ambiente: this.tempAmbiente.value
             };
+
+
+
             this.datos.push(temporal);
             this.barChartData[0].data.push(this.numero);
+            this.barChartData[1].data.push(this.mayor.value);
             this.resultado.setValue(this.numero);
             this.contador++;
             this.contadorTemperatura++;
@@ -176,7 +204,7 @@ encenderV2() {
               this.contador = 0;
               }
           }
-        }, 10);
+        }, 1);
         this.estadoMaquina = true;
       }else if (this.estadoMaquina === true) {
         clearInterval(this.intevalo);
@@ -196,6 +224,7 @@ encenderV2() {
       this.fireStorm.createData(this.datos);
       this.contador = 0;
       this.barChartData[0].data = [];
+      this.barChartData[1].data = [];
       this.periodoMuestreo.setValue(' ');
       this.voltaje.setValue(' ');
       this.resultado.setValue(' ');
@@ -205,6 +234,9 @@ encenderV2() {
       this.barChartLabels = [];
       this.segundos = 0;
       this.registroTemperatura = [];
+      this.perturbacion.setValue(' ');
+      this.tempAmbiente.setValue (' ');
+
 
   }
 
@@ -217,4 +249,13 @@ encenderV2() {
   private numeroAletorio(): number {
     return Math.floor(Math.random() * (4 - 3.5)) + 1.2;
   }
+
+  private perTemperatura(): number {
+    return 0.1 * Math.floor(Math.random() * (1 - 0) + 0);
+  }
+
+  private perVoltaje(): number {
+    return 0.1 * Math.floor(Math.random() * (120- 4) + 4);
+  }
+
 }
